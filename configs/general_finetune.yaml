@@ -1,0 +1,67 @@
+pretrained_model_path: "configs/scheduler"
+output_dir: "./outputs/pansharpening/final_test"
+
+
+train_data:
+  train_qb:
+    dataroot: "/home/wangsong/geochat/pansharpening/training_data/train_qb_data.h5"
+    grounding_file: "/home/wangsong/geochat/geochat/eval/QB_train/answer_grounding.jsonl"
+    scene_file: "/home/wangsong/geochat/geochat/eval/QB_train/answer_scene.jsonl"
+  train_gf2:
+    dataroot: "/home/wangsong/geochat/pansharpening/training_data/train_gf2_data.h5"
+    grounding_file: "/home/wangsong/geochat/geochat/eval/GF2_train/answer_grounding.jsonl"
+    scene_file: "/home/wangsong/geochat/geochat/eval/GF2_train/answer_scene.jsonl"
+  train_wv3:
+    dataroot: "/home/wangsong/geochat/pansharpening/training_data/train_wv3_data.h5"
+    grounding_file: "/home/wangsong/geochat/geochat/eval/WV3_train/answer_grounding.jsonl"
+    scene_file: "/home/wangsong/geochat/geochat/eval/WV3_train/answer_scene.jsonl"
+
+validation_data:
+  val_QB:
+    dataroot: "/home/wangsong/geochat/pansharpening/test_data/QB/test_qb_data_RR.h5"
+    grounding_file: "/home/wangsong/geochat/geochat/eval/QB_reduced/answer_grounding.jsonl"
+    scene_file: "/home/wangsong/geochat/geochat/eval/QB_reduced/answer_scene.jsonl"
+  val_GF2:
+    dataroot: "/home/wangsong/geochat/pansharpening/test_data/GF2/test_gf2_data_RR.h5"
+    grounding_file: "/home/wangsong/geochat/geochat/eval/GF2_reduced/answer_grounding.jsonl"
+    scene_file: "/home/wangsong/geochat/geochat/eval/GF2_reduced/answer_scene.jsonl"
+  val_WV3:
+    dataroot: "/home/wangsong/geochat/pansharpening/test_data/WV3/test_wv3_data_RR.h5"
+    grounding_file: "/home/wangsong/geochat/geochat/eval/WV3_reduced/answer_grounding.jsonl"
+    scene_file: "/home/wangsong/geochat/geochat/eval/WV3_reduced/answer_scene.jsonl"
+
+  val_QB_full:
+    dataroot: "/home/wangsong/geochat/pansharpening/test_data/QB/test_qb_data_FR.h5"
+    grounding_file: "/home/wangsong/geochat/geochat/eval/QB_full/answer_grounding.jsonl"
+    scene_file: "/home/wangsong/geochat/geochat/eval/QB_full/answer_scene.jsonl"
+  val_GF2_full:
+    dataroot: "/home/wangsong/geochat/pansharpening/test_data/GF2/test_gf2_data_FR.h5"
+    grounding_file: "/home/wangsong/geochat/geochat/eval/GF2_full/answer_grounding.jsonl"
+    scene_file: "/home/wangsong/geochat/geochat/eval/GF2_full/answer_scene.jsonl"
+  val_WV3_full:
+    dataroot: "/home/wangsong/geochat/pansharpening/test_data/WV3/test_wv3_data_FR.h5"
+    grounding_file: "/home/wangsong/geochat/geochat/eval/WV3_full/answer_grounding.jsonl"
+    scene_file: "/home/wangsong/geochat/geochat/eval/WV3_full/answer_scene.jsonl"
+gradient_accumulation_steps: 1
+learning_rate: 2e-4
+train_batch_size: 16
+dim: 64
+heads: [1, 2, 4, 8]
+max_train_steps: 150000
+checkpointing_steps: 10000
+validation_steps: 10000
+stop_steps: 50000
+lr_scheduler: "constant_with_warmup"
+lr_warmup_steps: 1000
+
+seed: 2047
+#mixed_precision: fp16
+#resume_from_checkpoint: ""
+#use_8bit_adam: False
+gradient_checkpointing: False
+enable_xformers_memory_efficient_attention: False
+
+
+
+
+

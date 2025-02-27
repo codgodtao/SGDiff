@@ -88,7 +88,6 @@ python train_pansharpening.py
 ### 作者
 
 Contact:  321227312@qq.com
-Personal WebSite:   https://codgodtao.github.io/skills-github-pages/
 
 <!-- links -->
 [your-project-path]:shaojintian/Best_README_template

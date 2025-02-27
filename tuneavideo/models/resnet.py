@@ -65,27 +65,7 @@ class MoEConv(nn.Module):
         y2 = y1 * score2_fixed.view(*score2_fixed.shape, 1, 1, 1)
         y2 = self.moeLayer2(y2)
 
-        # 多样性正则
-        def diversity_loss(s, eps=1e-6):
-            # 计算每个样本的L2范数,s全是>=0的元素
-            norms = torch.norm(s, p=2, dim=1, keepdim=True)
-            # 创建掩码标记接近零的向量
-            mask = (norms < eps).float()
-            # 将接近零的向量替换为全1向量以避免除以零,全1的相似度在早期很高；
-            s_safe = s * (1 - mask) + mask * torch.ones_like(s)
-            # 归一化处理
-            s_normalized = F.normalize(s_safe, p=2, dim=1)
-            # 计算余弦相似度矩阵
-            sim_matrix = torch.mm(s_normalized, s_normalized.t())
-            # 提取上三角部分（不包括对角线）并计算均值作为多样性正则项
-            diversity_reg = sim_matrix.triu(diagonal=1).mean()
-            return diversity_reg
-
-        div_loss = diversity_loss(score1) + diversity_loss(score2)
-        # 综合损失
-        router = (torch.abs(score1).mean() + torch.abs(score2).mean())
-
-        return y2, router, div_loss
+        return y2, torch.abs(score1).mean(), torch.abs(score2).mean()
 
 
 

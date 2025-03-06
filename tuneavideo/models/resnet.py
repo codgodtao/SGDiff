@@ -5,6 +5,7 @@ import torch
 import math
 from torch import autograd, nn as nn
 import torch.nn.functional as F
+from pdb import set_trace as stx
 import numbers
 
 from einops import rearrange
@@ -51,12 +52,11 @@ class MoEConv(nn.Module):
         score1 = self.relu(self.router1(self.softmax(y1))) # batch_size hidden_size
         score2 = self.relu(self.router2(self.softmax(y2))) # batch_size hidden_size
 
-        #score1 score2修改为前几个固定选择share expert
         score1_fixed = score1.clone()
-        score1_fixed[:, :self.share_expert] = 1
+        score1_fixed[:, :self.share_expert] = 1.0
 
         score2_fixed = score2.clone()
-        score2_fixed[:, :self.share_expert] = 1
+        score2_fixed[:, :self.share_expert] = 1.0
 
         # 路由权重应用
         y1 = x * score1_fixed.view(*score1_fixed.shape, 1, 1, 1)
@@ -65,31 +65,9 @@ class MoEConv(nn.Module):
         y2 = y1 * score2_fixed.view(*score2_fixed.shape, 1, 1, 1)
         y2 = self.moeLayer2(y2)
 
-        return y2, torch.abs(score1).mean(), torch.abs(score2).mean()
+        return y2+y1, torch.abs(score1).mean(), torch.abs(score2).mean()
 
 
-
-##########################################################################
-## Layer Norm
-class MoEConv_topK(nn.Module):
-    """"
-    input: x (B C N H W) N代表图像通道，C代表channel，其实是卷积操作的专家数量
-    output: y (B C N H W
-    """
-
-    def __init__(self, in_channels, out_channels, hidden_size, kernel_size=3, stride=1, padding=1,expert_num=10):
-        super().__init__()
-        self.router1 = Router(hidden_size, out_channels)#out_channels is expert
-        self.router2 = Router(hidden_size, out_channels)
-        self.softmax = nn.Softmax(-1)
-        self.relu = nn.ReLU()
-        self.expert_num = expert_num
-        self.moeLayer1 = nn.Conv3d(in_channels, out_channels*expert_num, kernel_size, stride, padding)
-        self.moeLayer2 = nn.Conv3d(in_channels, out_channels*expert_num, kernel_size, stride, padding)
-    def forward(self, x, y1, y2):
-        #router出来最高的out_channels个expert进行router,并计算平均分配相关的loss
-
-        return
 
 class BiasFree_LayerNorm(nn.Module):
     def __init__(self, normalized_shape):
@@ -125,6 +103,31 @@ class WithBias_LayerNorm(nn.Module):
         mu = x.mean(-1, keepdim=True)
         sigma = x.var(-1, keepdim=True, unbiased=False)
         return (x - mu) / torch.sqrt(sigma + 1e-5) * self.weight + self.bias
+
+# class Downsample(nn.Module):
+#     def __init__(self, n_feat):
+#         super(Downsample, self).__init__()
+#         self.body = nn.Conv3d(n_feat, 2*n_feat, kernel_size=3, stride=1, padding=1, bias=False)
+#
+#     def forward(self, x):
+#         # b, n, c, h, w = x.size()
+#         x = F.interpolate(x, scale_factor=(1,0.5,0.5), mode='trilinear') #->  b 2c n h//2 w//2
+#         x = self.body(x)
+#         # x = x.transpose(1, 2).reshape(b * c, n // 2, h, w)
+#         # x = self.unshuffle(x).reshape(b, c, n * 2, h // 2, w // 2).transpose(2, 1)  #b, 2*n, c, h//2, w//2
+#         return x
+#
+#
+# class Upsample(nn.Module):
+#     def __init__(self, n_feat):
+#         super(Upsample, self).__init__()
+#         self.body = nn.Conv3d(n_feat, n_feat//2, kernel_size=3, stride=1, padding=1, bias=False)
+#
+#     def forward(self, x):
+#         # b, c, n, h, w = x.size()  ->  b c//2 n h*2 w*2
+#         x = F.interpolate(x, scale_factor=(1,2,2), mode='trilinear')
+#         x = self.body(x)
+#         return x
 
 def to_3d(x):
     return rearrange(x, 'b c n h w -> b (n h w) c')
@@ -316,6 +319,9 @@ class Downsample(nn.Module):
         self.unshuffle = nn.PixelUnshuffle(2)
 
     def forward(self, x):
+        #b c h w-> b c//2 h w-> b 2c h//2 w//2  2D阶段的DownSample
+
+        #b n c h w-> b n//2 c h w-> b 2n c h//2 w//2
         b, n, c, h, w = x.size()
         x = self.body(x) #b, n//2, c, h, w
         x = x.transpose(1, 2).reshape(b * c, n // 2, h, w)
@@ -422,8 +428,12 @@ class ResBlock(nn.Module):
     def __init__(self, channel_in, channel_out,hidden_size):
         super().__init__()
         "(b,32,h,w,c)->(b,32,h,w,c)"
+
         self.output = nn.Conv3d(channel_in, channel_out, kernel_size=3, stride=1, padding=1, bias=False)
+
+
     def forward(self, x,t):  # norm silu dropout conv为一个block单元
+
         return self.output(x)
 
 ##########################################################################
@@ -498,7 +508,7 @@ class MOENetWork(nn.Module):
         inp_enc_level2 = self.down1_2(out_enc_level1)
         out_enc_level2, l1_loss, div_loss = self.encoder_level2(inp_enc_level2, t, y1, y2)
         total_l1_loss += l1_loss
-        total_div_loss += div_loss
+        total_div_loss += div_loss #不添加约束lOSS会变得完全一致！
         # print(inp_enc_level2.shape, out_enc_level2.shape) # 2N C H/2 W/2
 
         inp_enc_level3 = self.down2_3(out_enc_level2)
@@ -542,7 +552,6 @@ class MOENetWork(nn.Module):
         total_l1_loss += l1_loss
         total_div_loss += div_loss
         # print(out_dec_level1.shape)
-
 
         out_dec_level1 = self.output(out_dec_level1,t) #1
         # print(out_dec_level1.shape)

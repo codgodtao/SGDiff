@@ -43,7 +43,7 @@ DownLoad datasets from [PanCollection](https://liangjiandeng.github.io/PanCollec
 
 [Example File Format](tuneavideo/data/example)
 ### CheckPoint
-[Pretrained Checkpoint](https://huggingface.co/qulitao/sgdiff)
+[Pretrained Checkpoint]
 
 ### QuickStart
 ###### **requirement**
